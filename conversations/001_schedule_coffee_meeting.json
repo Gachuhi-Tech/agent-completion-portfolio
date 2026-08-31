@@ -1,0 +1,102 @@
+{
+  "id": "001_schedule_coffee_meeting",
+  "category": "multi-step chained tool use",
+  "why_this_example": "Shows the assistant sequencing three tools where each call depends on the previous result, and explaining a small judgment call (which time slot, which cafe) rather than just executing blindly.",
+  "context": {
+    "today": "2026-08-28",
+    "user_timezone": "Africa/Nairobi"
+  },
+  "turns": [
+    {
+      "role": "user",
+      "content": "Can you set up a coffee meeting with James (james.mwangi@example.com) sometime Tuesday afternoon? Somewhere near his office in Westlands would be great."
+    },
+    {
+      "role": "assistant",
+      "content": "Let me check your Tuesday afternoon first.",
+      "tool_calls": [
+        {
+          "name": "check_calendar_availability",
+          "arguments": { "date": "2026-09-01", "start_time": "13:00", "end_time": "17:00" }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "name": "check_calendar_availability",
+      "content": {
+        "date": "2026-09-01",
+        "busy_blocks": [{ "start_time": "14:00", "end_time": "15:00", "title": "Design Review" }],
+        "free_blocks": [
+          { "start_time": "13:00", "end_time": "14:00" },
+          { "start_time": "15:00", "end_time": "17:00" }
+        ]
+      }
+    },
+    {
+      "role": "assistant",
+      "content": "You're free 13:00-14:00 and 15:00-17:00 (you've got Design Review 14:00-15:00). I'll look for a spot after that so there's no rush. Checking cafes near his office now.",
+      "tool_calls": [
+        {
+          "name": "search_places",
+          "arguments": { "query": "coffee shop", "near": "Westlands, Nairobi" }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "name": "search_places",
+      "content": {
+        "results": [
+          { "name": "Java House Westlands", "distance_km": 0.3, "rating": 4.3 },
+          { "name": "Artcaffe Sarit Centre", "distance_km": 0.6, "rating": 4.5 },
+          { "name": "Cafe Ngong Rd", "distance_km": 3.1, "rating": 4.4 }
+        ]
+      }
+    },
+    {
+      "role": "assistant",
+      "content": "Java House Westlands is closest to his office and well-rated, so I'll book that. Setting it for 15:15-16:00 to give both of you a buffer after Design Review.",
+      "tool_calls": [
+        {
+          "name": "create_calendar_event",
+          "arguments": {
+            "title": "Coffee with James - Java House Westlands",
+            "date": "2026-09-01",
+            "start_time": "15:15",
+            "end_time": "16:00",
+            "attendees": ["james.mwangi@example.com"]
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "name": "create_calendar_event",
+      "content": { "status": "created", "event_id": "evt_88213" }
+    },
+    {
+      "role": "assistant",
+      "content": "Event's on your calendar. Sending James a heads-up now.",
+      "tool_calls": [
+        {
+          "name": "send_email",
+          "arguments": {
+            "to": ["james.mwangi@example.com"],
+            "subject": "Coffee Tuesday, 3:15pm - Java House Westlands?",
+            "body": "Hi James,\n\nHope you're well. I'd like to grab coffee Tuesday afternoon - proposed Java House Westlands, 3:15-4:00pm, close to your office. Let me know if that works or if you'd prefer another time.\n\nBest,\n[User]"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "name": "send_email",
+      "content": { "status": "sent", "message_id": "msg_44981" }
+    },
+    {
+      "role": "assistant",
+      "content": "Done - Tuesday 3:15-4:00pm at Java House Westlands is on your calendar, and I've emailed James to confirm. I built in a 15-minute buffer after your Design Review so you won't be rushing over."
+    }
+  ]
+}

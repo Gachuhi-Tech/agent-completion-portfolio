@@ -1,0 +1,79 @@
+{
+  "tools": [
+    {
+      "name": "check_calendar_availability",
+      "description": "Check whether the user is free during a given time window on a given date.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "date": { "type": "string", "description": "Date to check, format YYYY-MM-DD" },
+          "start_time": { "type": "string", "description": "Start of window, 24h HH:MM" },
+          "end_time": { "type": "string", "description": "End of window, 24h HH:MM" }
+        },
+        "required": ["date", "start_time", "end_time"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "create_calendar_event",
+      "description": "Create a new calendar event for the user.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "date": { "type": "string", "description": "YYYY-MM-DD" },
+          "start_time": { "type": "string", "description": "24h HH:MM" },
+          "end_time": { "type": "string", "description": "24h HH:MM" },
+          "attendees": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Attendee email addresses"
+          }
+        },
+        "required": ["title", "date", "start_time", "end_time"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "send_email",
+      "description": "Send an email on the user's behalf.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "to": { "type": "array", "items": { "type": "string" } },
+          "subject": { "type": "string" },
+          "body": { "type": "string" }
+        },
+        "required": ["to", "subject", "body"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "search_places",
+      "description": "Search for places (cafes, restaurants, venues, offices) near a given location.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": { "type": "string", "description": "What to search for, e.g. 'coffee shop'" },
+          "near": { "type": "string", "description": "Area or landmark to search near" }
+        },
+        "required": ["query", "near"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_directions",
+      "description": "Get travel time and route between two locations.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "origin": { "type": "string" },
+          "destination": { "type": "string" },
+          "mode": { "type": "string", "enum": ["driving", "walking", "transit", "boda"] }
+        },
+        "required": ["origin", "destination"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
