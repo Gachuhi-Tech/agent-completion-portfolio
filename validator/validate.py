@@ -37,12 +37,21 @@ def check_conversation(path, tools):
     if not turns:
         return [f"no 'turns' array found"]
 
+    pending_calls = []  # tool names called but not yet matched to a result
+
     for i, turn in enumerate(turns):
         role = turn.get("role")
 
         if role not in ("user", "assistant", "tool"):
             errors.append(f"turn {i}: unknown role '{role}'")
             continue
+
+        if role in ("assistant", "user") and pending_calls:
+            # a new assistant/user turn means any earlier call that never
+            # got a result is itself an error, not just a missing result
+            for leftover in pending_calls:
+                errors.append(f"turn {i}: earlier call to '{leftover}' never got a result")
+            pending_calls = []
 
         if role == "assistant":
             for call in turn.get("tool_calls", []):
@@ -56,19 +65,25 @@ def check_conversation(path, tools):
                     validate(instance=args, schema=schema)
                 except ValidationError as e:
                     errors.append(f"turn {i}: '{name}' arguments invalid - {e.message}")
+                pending_calls.append(name)
 
         if role == "tool":
             name = turn.get("name")
             if name not in tools:
                 errors.append(f"turn {i}: tool result references unknown tool '{name}'")
                 continue
-            # every tool turn should follow an assistant turn that actually called it
-            prev = turns[i - 1] if i > 0 else {}
-            prev_calls = [c.get("name") for c in prev.get("tool_calls", [])]
-            if name not in prev_calls:
+            # match against ANY still-pending call, not just the immediately
+            # preceding turn - one assistant turn can make several calls, so
+            # several tool turns in a row are legitimate
+            if name in pending_calls:
+                pending_calls.remove(name)
+            else:
                 errors.append(
-                    f"turn {i}: tool result for '{name}' doesn't follow a matching tool call"
+                    f"turn {i}: tool result for '{name}' doesn't match any pending tool call"
                 )
+
+    for leftover in pending_calls:
+        errors.append(f"end of conversation: call to '{leftover}' never got a result")
 
     return errors
 

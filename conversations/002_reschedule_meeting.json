@@ -1,0 +1,78 @@
+{
+  "id": "002_reschedule_meeting",
+  "category": "ambiguous request - assistant asks before acting",
+  "why_this_example": "Shows the assistant recognizing two missing values—recipient email and meeting time—asking for both in one turn, then acting only after real values are provided.",
+  "context": {
+    "today": "2026-08-31",
+    "user_timezone": "Africa/Nairobi"
+  },
+  "turns": [
+    {
+      "role": "user",
+      "content": "Can you email my supervisor about setting up a call about my proposal, sometime later this week?"
+    },
+    {
+      "role": "assistant",
+      "content": "I can do that. What's your supervisor's email address, and do you have a day or time in mind — or should I check your calendar for later this week and suggest a slot?"
+    },
+    {
+      "role": "user",
+      "content": "Her email is a.wanjiku@example.org — Dr. Amina Wanjiku. Check Thursday or Friday afternoon."
+    },
+    {
+      "role": "assistant",
+      "content": "Got it — I'll check Thursday and Friday afternoons for open time.",
+      "tool_calls": [
+        { "name": "check_calendar_availability", "arguments": { "date": "2026-09-03", "start_time": "13:00", "end_time": "17:00" } },
+        { "name": "check_calendar_availability", "arguments": { "date": "2026-09-04", "start_time": "13:00", "end_time": "17:00" } }
+      ]
+    },
+    {
+      "role": "tool",
+      "name": "check_calendar_availability",
+      "content": {
+        "date": "2026-09-03",
+        "busy_blocks": [],
+        "free_blocks": [
+          { "start_time": "13:00", "end_time": "17:00" }
+        ]
+      }
+    },
+    {
+      "role": "tool",
+      "name": "check_calendar_availability",
+      "content": {
+        "date": "2026-09-04",
+        "busy_blocks": [
+          { "start_time": "13:00", "end_time": "14:30", "title": "Project sync" }
+        ],
+        "free_blocks": [
+          { "start_time": "14:30", "end_time": "17:00" }
+        ]
+      }
+    },
+    {
+      "role": "assistant",
+      "content": "Thursday afternoon is fully open, so I'll propose Thursday, September 3 at 2:00 PM. Sending Dr. Wanjiku the email now.",
+      "tool_calls": [
+        {
+          "name": "send_email",
+          "arguments": {
+            "to": ["a.wanjiku@example.org"],
+            "subject": "Setting up a call about my proposal",
+            "body": "Hi Dr. Wanjiku,\n\nI'd like to set up a call about my proposal sometime later this week. Would Thursday, September 3 at 2:00 PM work for you?\n\nThanks,\n[User]"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "name": "send_email",
+      "content": { "status": "sent", "message_id": "msg_002001" }
+    },
+    {
+      "role": "assistant",
+      "content": "Sent the email to Dr. Amina Wanjiku proposing Thursday, September 3 at 2:00 PM. Friday afternoon is also open if she needs an alternative."
+    }
+  ]
+}
