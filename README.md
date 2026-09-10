@@ -1,10 +1,10 @@
 # Agent Completion Portfolio — Multi-Turn Tool-Use Conversations
 
-A hand-built set of multi-turn conversations between a user and an AI assistant that uses function-calling tools (calendar, email, maps) to get things done — plus the tool schemas, quality rubric, and validator behind them.
+A hand-built set of multi-turn conversations between a user and an AI assistant that uses function-calling tools (calendar, email, maps) to get things done — plus the tool schemas, quality rubric, validator, and a working agent that runs the conversations against a real LLM.
 
 Built while preparing for "LLM Trainer – Agent Function Call" contractor role (Agent Completion / AC data generation for a foundational LLM company).
 
-**Demonstrates:** multi-turn tool-use design · function-call schema validation · ambiguity and failure handling · rubric-driven evaluation · Python (JSON Schema validation)
+**Demonstrates:** multi-turn tool-use design · function-call schema validation · ambiguity and failure handling · rubric-driven evaluation · Python (JSON Schema validation, OpenAI-compatible tool-calling loops)
 
 ## Why this exists
 
@@ -15,15 +15,16 @@ That kind of role is really asking one question: can you design realistic multi-
 1. Read `PLAYBOOK.md` — the 8 rules every conversation is written against. It's short.
 2. Read `conversations/002_reschedule_meeting.json` — the clearest single example of the judgment this role tests: noticing what's missing and asking before acting.
 3. Run `python validator/validate.py` — see the structural checks pass.
+4. Run `python agent/agent.py --replay 002` — watch a real LLM try the same scenario, and compare to the hand-written bar.
 
 ## Structure
 
-```
-tools/tool_schemas.json     5 mock tools across 3 "apps": calendar, email, maps
-PLAYBOOK.md                 the quality rubric every conversation is written and checked against
-conversations/               the hand-written conversations, one JSON file each
-validator/validate.py       checks every conversation file against the schemas + structural rules
-```
+```text
+tools/tool_schemas.json          5 mock tools across 3 "apps": calendar, email, maps
+PLAYBOOK.md                      the quality rubric every conversation is written and checked against
+conversations/                   the hand-written conversations, one JSON file each
+validator/validate.py            checks every conversation file against the schemas + structural rules
+agent/agent.py                   runs the conversations against a real LLM and reports drift## Structure
 
 ## Coverage
 
@@ -48,10 +49,17 @@ python validator/validate.py
 
 It only catches format problems (bad JSON, wrong arguments, orphaned tool results) — not writing quality. That's a human judgment call against `PLAYBOOK.md`.
 
+## Running the agent
+ 
+```bash
+pip install openai
+set GROQ_API_KEY=gsk_...   # Windows
+python agent/agent.py
+
+Interactive chat, or `--replay 002` to run the hand-written scenario against a real model and see where it drifts. Uses Groq's free tier via its OpenAI-compatible API.
+
 ## Design notes
 
-**One conversation per rule.** The playbook has eight rules; rules 1–6 each map to a distinct judgment call — chained tool use, ask-before-acting, infeasibility, no-tool-needed, failure recovery, and one open slot. I built them one at a time so each conversation could actually demonstrate its rule, rather than producing a pile that all exercised the same easy path.
+**Why this set, not a bulk one.** The playbook has eight rules; rules 1–6 each map to a distinct judgment call — chained tool use, ask-before-acting, infeasibility, no-tool-needed, failure recovery, and one open slot. I built them one at a time so each conversation could actually demonstrate its rule, rather than producing a pile that all exercised the same easy path.
 
-**"Ambiguous" isn't always about the assistant.** My first draft of 002 had the user ask to move "our meeting" — which implies a specific existing event, but nothing in the tool set can look up an existing meeting. The fix wasn't the assistant's behavior; the assistant was behaving correctly given a broken premise. The fix was rewriting the user's line. Some ambiguity problems are really "the scenario is asking for a capability that doesn't exist" problems in disguise.
-
-**What's next.** 003 (infeasibility), 004 (no tool needed), 005 (tool failure recovery), and one open slot. Same rule each time: one conversation per judgment call, written so I can explain every turn.
+**The conversations are a spec, and I tested against it.** I built a small agent (`agent/agent.py`) that loads the same `tool_schemas.json`, runs each conversation's user turns against a real LLM via Groq, and prints what the model actually did next to what the hand-written file expects. The first run surfaced two real bugs in the model's behavior that my hand-written files had already avoided: (1) it resolved "the coming Tuesday" to a Saturday, and (2) it claimed an email was sent without calling `send_email`. Adding the current date and an explicit "creating an event does not notify the attendee" rule to the system prompt fixed both. A third case — offering to "check for a reply" when no tool can read an inbox — still drifts, and is exactly the case `003` was written for.
